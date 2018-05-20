@@ -34,7 +34,7 @@ size_t get_blocks_number(size_t val) {
     return total_blocks;
 }
 
-void scan(ProgramData& data, cl::Buffer& in, cl::Buffer& out, size_t input_size) {
+void scan(ProgramData& data, cl::Buffer& dev_a, cl::Buffer& dev_c, size_t input_size) {
     size_t total_blocks = get_blocks_number(input_size);
     size_t array_size = total_blocks * block_size;
 
@@ -43,7 +43,7 @@ void scan(ProgramData& data, cl::Buffer& in, cl::Buffer& out, size_t input_size)
     cl::Kernel kernel_b(data.program, "scan_blelloch");
     cl::KernelFunctor scan_b(kernel_b, data.queue, cl::NullRange, cl::NDRange(array_size), cl::NDRange(block_size));
 
-    cl::Event blelloch_event = scan_b(in, out, dev_partial_sums, cl::__local(sizeof(float) * block_size), input_size);
+    cl::Event blelloch_event = scan_b(dev_a, dev_c, dev_partial_sums, cl::__local(sizeof(float) * block_size), input_size);
     blelloch_event.wait();
 
     if (total_blocks == 1) {
@@ -55,7 +55,7 @@ void scan(ProgramData& data, cl::Buffer& in, cl::Buffer& out, size_t input_size)
     cl::Kernel kernel_add(data.program, "add_rest_elements");
     cl::KernelFunctor add_elements(kernel_add, data.queue, cl::NullRange, cl::NDRange(array_size), cl::NDRange(block_size));
 
-    cl::Event final_event = add_elements(dev_partial_sums, out, input_size);
+    cl::Event final_event = add_elements(dev_partial_sums, dev_c, input_size);
     final_event.wait();
 }
 
